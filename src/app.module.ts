@@ -15,6 +15,7 @@ import { User } from './users/entities/user.entity';
 import { JwtModule } from './jwt/jwt.module';
 import { JwtMiddleware } from './jwt/jwt.middleware';
 import { MailModule } from './mail/mail.module';
+import { Verification } from './users/entities/verification.entity';
 
 @Module({
   imports: [
@@ -48,7 +49,7 @@ import { MailModule } from './mail/mail.module';
       database: process.env.DB_NAME,
       synchronize: process.env.NODE_ENV !== 'prod',
       logging: process.env.NODE_ENV !== 'prod',
-      entities: [User],
+      entities: [User, Verification],
     }),
     UsersModule,
     JwtModule.forRoot({
