@@ -76,7 +76,7 @@ export class UsersService {
     } catch (error) {
       return {
         ok: false,
-        error,
+        error: '로그인할 수 없습니다.',
       };
     }
   }
