@@ -83,13 +83,11 @@ export class UsersService {
 
   async findById(id: number): Promise<UserProfileOutput> {
     try {
-      const user = await this.users.findOne({ id });
-      if (user) {
-        return {
-          ok: true,
-          user,
-        };
-      }
+      const user = await this.users.findOneOrFail({ id });
+      return {
+        ok: true,
+        user,
+      };
     } catch (errror) {
       return {
         ok: false,
@@ -146,7 +144,7 @@ export class UsersService {
     } catch (error) {
       return {
         ok: false,
-        error,
+        error: '인증 메일을 확인할 수 없습니다.',
       };
     }
   }
