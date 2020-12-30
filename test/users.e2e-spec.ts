@@ -2,7 +2,9 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { INestApplication } from '@nestjs/common';
 import * as request from 'supertest';
 import { AppModule } from '../src/app.module';
-import { getConnection } from 'typeorm';
+import { getConnection, Repository } from 'typeorm';
+import { User } from '../src/users/entities/user.entity';
+import { getRepositoryToken } from '@nestjs/typeorm';
 
 jest.mock('got', () => {
   return {
@@ -12,8 +14,15 @@ jest.mock('got', () => {
 
 const GRAPHQL_ENDPOINT = '/graphql';
 
+const testUser = {
+  email: 'running@water.com',
+  password: '12345',
+};
+
 describe('UserModule (e2e)', () => {
   let app: INestApplication;
+  let usersRepository: Repository<User>;
+  let jwtToken: string;
 
   beforeAll(async () => {
     const module: TestingModule = await Test.createTestingModule({
@@ -21,6 +30,7 @@ describe('UserModule (e2e)', () => {
     }).compile();
 
     app = module.createNestApplication();
+    usersRepository = module.get<Repository<User>>(getRepositoryToken(User));
     await app.init();
   });
 
@@ -30,7 +40,6 @@ describe('UserModule (e2e)', () => {
   });
 
   describe('createAccount', () => {
-    const EMAIL = 'running@water.com';
     it('should create account', () => {
       return request(app.getHttpServer())
         .post(GRAPHQL_ENDPOINT)
@@ -38,8 +47,8 @@ describe('UserModule (e2e)', () => {
           query: `
         mutation {
           createAccount(input: {
-            email: "${EMAIL}",
-            password: "12345",
+            email: "${testUser.email}",
+            password: "${testUser.password}",
             role: Owner
           }){
             ok,
@@ -61,8 +70,8 @@ describe('UserModule (e2e)', () => {
           query: `
         mutation {
           createAccount(input: {
-            email: "${EMAIL}",
-            password: "12345",
+            email: "${testUser.email}",
+            password: "${testUser.password}",
             role: Owner
           }){
             ok,
@@ -77,6 +86,142 @@ describe('UserModule (e2e)', () => {
           expect(res.body.data.createAccount.error).toBe(
             '기존에 존재하는 이메일입니다.',
           );
+        });
+    });
+  });
+
+  describe('login', () => {
+    it('should login with correct credentials', () => {
+      return request(app.getHttpServer())
+        .post(GRAPHQL_ENDPOINT)
+        .send({
+          query: `
+        mutation {
+          login(input: {
+            email: "${testUser.email}",
+            password: "${testUser.password}",
+          }){
+            ok,
+            error,
+            token
+          }
+        }
+        `,
+        })
+        .expect(200)
+        .expect((res) => {
+          const {
+            body: {
+              data: { login },
+            },
+          } = res;
+          expect(login.ok).toBe(true);
+          expect(login.error).toBe(null);
+          expect(login.token).toEqual(expect.any(String));
+          jwtToken = login.token;
+        });
+    });
+    it('should not be able to login with wrong credentials', () => {
+      return request(app.getHttpServer())
+        .post(GRAPHQL_ENDPOINT)
+        .send({
+          query: `
+        mutation {
+          login(input: {
+            email: "${testUser.email}",
+            password: "wrong password",
+          }){
+            ok,
+            error,
+            token
+          }
+        }
+        `,
+        })
+        .expect(200)
+        .expect((res) => {
+          const {
+            body: {
+              data: { login },
+            },
+          } = res;
+          expect(login.ok).toBe(false);
+          expect(login.error).toBe('잘못된 비밀번호 입니다.');
+          expect(login.token).toBe(null);
+        });
+    });
+  });
+
+  describe('userProfile', () => {
+    let userId: number;
+    beforeAll(async () => {
+      const [user] = await usersRepository.find();
+      userId = user.id;
+    });
+    it("should see a user's profile", () => {
+      return request(app.getHttpServer())
+        .post(GRAPHQL_ENDPOINT)
+        .set('X-JWT', jwtToken)
+        .send({
+          query: `
+          {
+            userProfile(userId: ${userId}){
+              ok,
+              error,
+              user {
+                id
+              }
+            }
+          }
+        `,
+        })
+        .expect(200)
+        .expect((res) => {
+          const {
+            body: {
+              data: {
+                userProfile: {
+                  ok,
+                  error,
+                  user: { id },
+                },
+              },
+            },
+          } = res;
+          expect(ok).toBe(true);
+          expect(error).toBe(null);
+          expect(id).toBe(userId);
+        });
+    });
+    it('should not find a profile', () => {
+      return request(app.getHttpServer())
+        .post(GRAPHQL_ENDPOINT)
+        .set('X-JWT', jwtToken)
+        .send({
+          query: `
+          {
+            userProfile(userId: 1218){
+              ok,
+              error,
+              user {
+                id
+              }
+            }
+          }
+        `,
+        })
+        .expect(200)
+        .expect((res) => {
+          const {
+            body: {
+              data: {
+                userProfile: { ok, error, user },
+              },
+            },
+          } = res;
+          expect(ok).toBe(false);
+          expect(error).toBe('유저가 존재하지 않습니다.');
+          expect(user).toBe(null);
         });
     });
   });
