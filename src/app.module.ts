@@ -17,6 +17,7 @@ import { JwtMiddleware } from './jwt/jwt.middleware';
 import { MailModule } from './mail/mail.module';
 import { Verification } from './users/entities/verification.entity';
 import { Category } from './restaurant/entities/category.entity';
+import { AuthModule } from './auth/auth.module';
 
 @Module({
   imports: [
@@ -62,6 +63,7 @@ import { Category } from './restaurant/entities/category.entity';
       domain: process.env.MAILGUN_DOMAIN,
       fromEmail: process.env.MAILGUN_FROM_EMAIL,
     }),
+    AuthModule,
     RestaurantModule,
   ],
   controllers: [],
