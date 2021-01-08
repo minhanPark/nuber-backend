@@ -3,6 +3,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { User } from 'src/users/entities/user.entity';
 import { Repository } from 'typeorm';
 import { AllCategoriesOutput } from './dtos/all-categories.dto';
+import { CategoryInput, CategoryOutput } from './dtos/category.dto';
 import {
   CreateRestaurantInput,
   CreateRestaurantOutput,
@@ -15,9 +16,11 @@ import {
   EditRestaurantInput,
   EditRestaurantOutput,
 } from './dtos/edit-restaurant.dto';
+import { RestaurantInput, RestaurantOutput } from './dtos/restaurants.dto';
 import { Category } from './entities/category.entity';
 import { Restaurant } from './entities/restaurant.entity';
 import { CategoryRepository } from './repositories/category.repository';
+import { CategoryResolver } from './restaurant.resolver';
 
 @Injectable()
 export class RestaurantService {
@@ -136,6 +139,61 @@ export class RestaurantService {
       return {
         ok: false,
         error: '카테고리를 불러올 수 없습니다.',
+      };
+    }
+  }
+  countRestaurants(category: Category) {
+    return this.restaurants.count({ category });
+  }
+
+  async findCategoryBySlug({
+    slug,
+    page,
+  }: CategoryInput): Promise<CategoryOutput> {
+    try {
+      const category = await this.categories.findOne({ slug });
+      if (!category) {
+        return {
+          ok: false,
+          error: '카테고리를 발견하지 못했습니다.',
+        };
+      }
+      const restaurants = await this.restaurants.find({
+        where: { category },
+        take: 10,
+        skip: (page - 1) * 10,
+      });
+      const totlaResults = await this.countRestaurants(category);
+      return {
+        ok: true,
+        category,
+        restaurants,
+        totalPages: Math.ceil(totlaResults / 10),
+      };
+    } catch {
+      return {
+        ok: false,
+        error: '카테고리를 불러올 수 없습니다.',
+      };
+    }
+  }
+
+  async allRestaurants({ page }: RestaurantInput): Promise<RestaurantOutput> {
+    try {
+      const [restaurants, totalResults] = await this.restaurants.findAndCount({
+        skip: (page - 1) * 10,
+        take: 10,
+      });
+      return {
+        ok: true,
+        results: restaurants,
+        totalPages: Math.ceil(totalResults / 25),
+        totalResults,
+      };
+    } catch {
+      return {
+        ok: false,
+        error: '레스토랑을 갖고올 수 없습니다.',
       };
     }
   }
