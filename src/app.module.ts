@@ -18,6 +18,7 @@ import { MailModule } from './mail/mail.module';
 import { Verification } from './users/entities/verification.entity';
 import { Category } from './restaurant/entities/category.entity';
 import { AuthModule } from './auth/auth.module';
+import { Dish } from './restaurant/entities/dish.entity';
 
 @Module({
   imports: [
@@ -52,7 +53,7 @@ import { AuthModule } from './auth/auth.module';
       synchronize: process.env.NODE_ENV !== 'prod',
       logging:
         process.env.NODE_ENV !== 'prod' && process.env.NODE_ENV !== 'test',
-      entities: [User, Verification, Restaurant, Category],
+      entities: [User, Verification, Restaurant, Category, Dish],
     }),
     UsersModule,
     JwtModule.forRoot({
