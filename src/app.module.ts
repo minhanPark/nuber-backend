@@ -1,9 +1,4 @@
-import {
-  MiddlewareConsumer,
-  Module,
-  NestModule,
-  RequestMethod,
-} from '@nestjs/common';
+import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { GraphQLModule } from '@nestjs/graphql';
 import { TypeOrmModule } from '@nestjs/typeorm';
@@ -13,7 +8,6 @@ import { Restaurant } from './restaurant/entities/restaurant.entity';
 import { UsersModule } from './users/users.module';
 import { User } from './users/entities/user.entity';
 import { JwtModule } from './jwt/jwt.module';
-import { JwtMiddleware } from './jwt/jwt.middleware';
 import { MailModule } from './mail/mail.module';
 import { Verification } from './users/entities/verification.entity';
 import { Category } from './restaurant/entities/category.entity';
@@ -25,6 +19,7 @@ import { OrderItem } from './orders/entities/order-item.entity';
 import { CommonModule } from './common/common.module';
 import { PaymentsModule } from './payments/payments.module';
 import { Payment } from './payments/entities/payment.entity';
+import { ScheduleModule } from '@nestjs/schedule';
 
 @Module({
   imports: [
@@ -77,6 +72,7 @@ import { Payment } from './payments/entities/payment.entity';
       ],
     }),
     UsersModule,
+    ScheduleModule.forRoot(),
     JwtModule.forRoot({
       privateKey: process.env.SECRET_KEY,
     }),
